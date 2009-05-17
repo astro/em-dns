@@ -27,7 +27,7 @@ class TestBasic < Test::Unit::TestCase
 	)
 
 	def test_a
-		EM::DnsCache.add_nameserver TestNameserver
+		EM::DnsCache.add_nameservers_from_file
 		EM::DnsCache.verbose
 
 		out = nil
@@ -46,7 +46,7 @@ class TestBasic < Test::Unit::TestCase
 	end
 
 	def test_a_pair
-		EM::DnsCache.add_nameserver TestNameserver
+		EM::DnsCache.add_nameservers_from_file
 		EM::DnsCache.verbose
 
 		out = nil

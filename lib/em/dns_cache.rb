@@ -40,6 +40,16 @@ module EventMachine
       @nameservers << ns unless @nameservers.include?(ns)
     end
 
+    def self.add_nameservers_from_file file='/etc/resolv.conf'
+      IO::readlines(file).each do |line|
+        if line =~ /^nameserver (.+)$/
+          $1.split(/\s+/).each { |ns|
+            @nameservers << ns unless ns.empty?
+          }
+        end
+      end
+    end
+
     def self.verbose v=true
       @verbose = v
     end
