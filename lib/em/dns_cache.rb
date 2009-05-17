@@ -68,16 +68,16 @@ module DnsCache
 =begin
 			d = @a_cache[domain]
 			if d.first < Time.now
-				$>.puts "Expiring stale cache entry for #{domain}" if @verbose
+				STDOUT.puts "Expiring stale cache entry for #{domain}" if @verbose
 				@a_cache.delete domain
 				resolve domain
 			else
-				$>.puts "Fulfilled #{domain} from cache" if @verbose
+				STDOUT.puts "Fulfilled #{domain} from cache" if @verbose
 				d.last
 			end
 		else
 =end
-			$>.puts "Fulfilling #{domain} from network" if @verbose
+			STDOUT.puts "Fulfilling #{domain} from network" if @verbose
 			d = EM::DefaultDeferrable.new
 			d.timeout(5)
 			@a_cache.add domain, d, 300 # Hard-code a 5 minute expiration
@@ -124,16 +124,16 @@ module DnsCache
 		if @mx_cache.has_key?(domain)
 			d = @mx_cache[domain]
 			if d.first < Time.now
-				$>.puts "Expiring stale cache entry for #{domain}" if @verbose
+				STDOUT.puts "Expiring stale cache entry for #{domain}" if @verbose
 				@mx_cache.delete domain
 				resolve_mx domain
 			else
-				$>.puts "Fulfilled #{domain} from cache" if @verbose
+				STDOUT.puts "Fulfilled #{domain} from cache" if @verbose
 				d.last
 			end
 		else
 =end
-			$>.puts "Fulfilling #{domain} from network" if @verbose
+			STDOUT.puts "Fulfilling #{domain} from network" if @verbose
 			d = EM::DefaultDeferrable.new
 			d.timeout(5)
 			#@mx_cache[domain] = [Time.now+120, d] # Hard code a 120-second expiration.
