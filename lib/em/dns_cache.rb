@@ -99,7 +99,7 @@ module DnsCache
 			d.callback {|resp|
 				r = []
 				resp.each_answer {|name,ttl,data|
-					r << data.address.to_s
+					r << data.address.to_s if data.kind_of?(Resolv::DNS::Resource::IN::A)
 				}
 
 				# Freeze the array since we'll be keeping it in cache and passing it
