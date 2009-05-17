@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{em-dns}
-  s.version = "0.0.0"
+  s.version = "0.0.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Aman Gupta", "Stephan Maka"]
@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.email = %q{astro@spaceboyz.net}
   s.files = [
     "Rakefile",
+    "VERSION.yml",
     "lib/em/dns_cache.rb",
     "test/test_basic.rb"
   ]
