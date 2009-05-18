@@ -35,6 +35,9 @@ module EventMachine
     @mx_cache = Cache.new
     @nameservers = []
     @message_ix = 0
+    MAX_WAITING = 20
+    @waiting = 0
+    @pending = []
 
     def self.add_nameserver ns
       @nameservers << ns unless @nameservers.include?(ns)
@@ -73,6 +76,8 @@ module EventMachine
     #
     def self.resolve domain
       if d = @a_cache.retrieve(domain)
+        puts "Cache hit for #{domain}" if @verbose
+        look_pending
         d
       else
 =begin
@@ -87,40 +92,77 @@ module EventMachine
         end
       else
 =end
-        STDOUT.puts "Fulfilling #{domain} from network" if @verbose
-        d = EM::DefaultDeferrable.new
-        d.timeout(5)
-        @a_cache.add domain, d, 300 # Hard-code a 5 minute expiration
-        #@a_cache[domain] = [Time.now+120, d] # Hard code a 120-second expiration.
-
-        lazy_initialize
-        m = Resolv::DNS::Message.new
-        m.rd = 1
-        m.add_question domain, Resolv::DNS::Resource::IN::A
-        m = m.encode
-        @nameservers.each {|ns|
-          @message_ix = (@message_ix + 1) % 60000
-          Request.new d, @message_ix
-          msg = m.dup
-          msg[0,2] = [@message_ix].pack("n")
-          @u.send_datagram msg, ns, 53
-        }
-
-        d.callback {|resp|
-          r = []
-          resp.each_answer {|name,ttl,data|
-            r << data.address.to_s if data.kind_of?(Resolv::DNS::Resource::IN::A)
+        if @waiting >= MAX_WAITING
+          puts "Postponing #{domain} because already waiting for #{@waiting} queries" if @verbose
+          d = EM::DefaultDeferrable.new
+          @pending << lambda {
+            d_inner = resolve domain
+            d_inner.callback &d.method(:succeed)
+            d_inner.errback &d.method(:fail)
           }
+          puts "#{@pending.size} pending requests now" if @verbose
+          d
+        else
+          d = resolve_do domain
+          @waiting += 1
+          STDOUT.puts "Now waiting for #{@waiting}" if @verbose
+          on_one_done = lambda {
+            @waiting -= 1
+            look_pending
+          }
+          d.callback &on_one_done
+          d.errback &on_one_done
+          d
+        end
+      end
+    end
 
-          # Freeze the array since we'll be keeping it in cache and passing it
-          # around to multiple users. And alternative would have been to dup it.
-          r.freeze
-          d.succeed r
+    def self.look_pending
+      EM.next_tick {
+        while @waiting < MAX_WAITING && !@pending.empty?
+          pending1 = @pending.shift
+          pending1.call
+          puts "#{@pending.size} pending requests now" if @verbose
+        end
+      }
+    end
+
+    def self.resolve_do domain
+      STDOUT.puts "Fulfilling #{domain} from network" if @verbose
+      d = EM::DefaultDeferrable.new
+      d.timeout(5)
+      d.callback { d.cancel_timeout }
+      d.errback { d.cancel_timeout }
+      @a_cache.add domain, d, 300 # Hard-code a 5 minute expiration
+      #@a_cache[domain] = [Time.now+120, d] # Hard code a 120-second expiration.
+
+      lazy_initialize
+      m = Resolv::DNS::Message.new
+      m.rd = 1
+      m.add_question domain, Resolv::DNS::Resource::IN::A
+      m = m.encode
+      @nameservers.each {|ns|
+        @message_ix = (@message_ix + 1) % 60000
+        Request.new d, @message_ix
+        msg = m.dup
+        msg[0,2] = [@message_ix].pack("n")
+        @u.send_datagram msg, ns, 53
+      }
+
+      d.callback {|resp|
+        r = []
+        resp.each_answer {|name,ttl,data|
+          r << data.address.to_s if data.kind_of?(Resolv::DNS::Resource::IN::A)
         }
 
+        # Freeze the array since we'll be keeping it in cache and passing it
+        # around to multiple users. And alternative would have been to dup it.
+        r.freeze
+        d.succeed r
+      }
 
-        d
-      end
+
+      d
     end
 
 
@@ -275,8 +317,8 @@ module EventMachine
         @@outstanding[@msgid] = self
 
         self.timeout(10)
-        self.errback { @@outstanding.delete(@msgid) }
-        self.callback {|resp| @result.succeed resp }
+        self.errback { self.cancel_timeout; @@outstanding.delete(@msgid) }
+        self.callback {|resp| self.cancel_timeout; @result.succeed resp }
       end
     end
 
