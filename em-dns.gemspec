@@ -2,27 +2,27 @@
 
 Gem::Specification.new do |s|
   s.name = %q{em-dns}
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Aman Gupta", "Stephan Maka"]
-  s.date = %q{2009-05-17}
+  s.date = %q{2009-05-19}
   s.description = %q{DNS::Resolv made ready for EventMachine}
   s.email = %q{astro@spaceboyz.net}
   s.files = [
     "Rakefile",
-    "VERSION.yml",
-    "lib/em/dns_cache.rb",
-    "test/test_basic.rb"
+     "VERSION.yml",
+     "lib/em/dns_cache.rb",
+     "test/test_basic.rb"
   ]
-  s.has_rdoc = true
   s.homepage = %q{http://github.com/astro/em-dns}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.3.2}
+  s.rubygems_version = %q{1.3.3}
   s.summary = %q{Resolve domain names from EventMachine natively}
   s.test_files = [
-    "test/test_basic.rb"
+    "test/test_basic.rb",
+     "examples/lookup_many.rb"
   ]
 
   if s.respond_to? :specification_version then
