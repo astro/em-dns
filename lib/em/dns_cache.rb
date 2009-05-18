@@ -141,15 +141,16 @@ module EventMachine
       m.rd = 1
       m.add_question domain, Resolv::DNS::Resource::IN::A
       m = m.encode
+      d_inner = EM::DefaultDeferrable.new
       @nameservers.each {|ns|
         @message_ix = (@message_ix + 1) % 60000
-        Request.new d, @message_ix
+        Request.new d_inner, @message_ix
         msg = m.dup
         msg[0,2] = [@message_ix].pack("n")
         @u.send_datagram msg, ns, 53
       }
 
-      d.callback {|resp|
+      d_inner.callback {|resp|
         r = []
         resp.each_answer {|name,ttl,data|
           r << data.address.to_s if data.kind_of?(Resolv::DNS::Resource::IN::A)
@@ -160,6 +161,7 @@ module EventMachine
         r.freeze
         d.succeed r
       }
+      d_inner.errback &d.method(:fail)
 
 
       d
@@ -317,7 +319,7 @@ module EventMachine
         @@outstanding[@msgid] = self
 
         self.timeout(10)
-        self.errback { self.cancel_timeout; @@outstanding.delete(@msgid) }
+        self.errback { self.cancel_timeout; @@outstanding.delete(@msgid); @result.fail }
         self.callback {|resp| self.cancel_timeout; @result.succeed resp }
       end
     end
