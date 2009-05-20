@@ -11,7 +11,7 @@ Jeweler::Tasks.new do |s|
   s.homepage = "http://github.com/astro/em-dns"
   s.description = "DNS::Resolv made ready for EventMachine"
   s.authors = ["Aman Gupta", "Stephan Maka"]
-  s.files =  FileList["[A-Z]*", "{lib,test}/**/*"]
+  s.files =  FileList["[A-Z]*", "{lib,test,examples}/**/*"]
   s.add_dependency 'eventmachine'
 end
 
