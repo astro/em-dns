@@ -45,7 +45,7 @@ module EventMachine
       end
       def post_init
         @requests = {}
-        EM.add_periodic_timer(1, &method(:tick))
+        EM.add_periodic_timer(0.1, &method(:tick))
       end
       # Periodically called each second to fire request retries
       def tick
