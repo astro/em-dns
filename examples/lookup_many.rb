@@ -3,7 +3,7 @@
 require 'uri'
 require 'eventmachine'
 $: << File.dirname(__FILE__) + '/../lib'
-require 'em/dns_cache'
+require 'em/dns_resolver'
 
 if ARGV.size == 0
   puts "Usage: #{$0} <url-files>"
@@ -23,33 +23,26 @@ ARGV.each do |fn|
 end
 puts "Will resolve #{hosts.size} hosts"
 
-EM::DnsCache.add_nameservers_from_file
-EM::DnsCache.verbose
-
+BATCH_SIZE = 30
 EM.run {
   pending = 0
-  hosts.each do |host|
-    df = EM::DnsCache.resolve(host)
-    df.callback { |*a|
-      if a.size == 1
-        if a.kind_of?(Array)
-          # Good!
-        else
-          p host => a[0]
-        end
-      else
-        p host => {:args => a}
-      end
-      pending -= 1
-      EM.stop if pending < 1
-    }
-    df.errback { |*a|
-      puts "Cannot resolve #{host}: #{a.inspect}"
-      pending -= 1
-      EM.stop if pending < 1
-    }
-    pending += 1
-    puts "#{pending} pending"
+  EM.add_periodic_timer(1) do
+    batch, hosts = hosts[0..(BATCH_SIZE-1)], hosts[BATCH_SIZE..-1]
+    batch.each do |host|
+      df = EM::DnsResolver.resolve(host)
+      df.callback { |a|
+        p host => a
+        pending -= 1
+        EM.stop if pending < 1 && hosts.empty?
+      }
+      df.errback { |*a|
+        puts "Cannot resolve #{host}: #{a.inspect}"
+        pending -= 1
+        EM.stop if pending < 1 && hosts.empty?
+      }
+      pending += 1
+      puts "#{pending} pending"
+    end
+    puts "Started all: #{pending} pending"
   end
-  puts "Started all: #{pending} pending"
 }
