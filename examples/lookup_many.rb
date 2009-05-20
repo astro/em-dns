@@ -21,28 +21,35 @@ ARGV.each do |fn|
     end
   end
 end
+hosts.uniq!
 puts "Will resolve #{hosts.size} hosts"
 
-BATCH_SIZE = 30
+BATCH_SIZE = 10
+successes = 0
+failures = 0
+t1 = Time.now
 EM.run {
   pending = 0
-  EM.add_periodic_timer(1) do
-    batch, hosts = hosts[0..(BATCH_SIZE-1)], hosts[BATCH_SIZE..-1]
+  EM.add_periodic_timer(0.1) do
+    batch, hosts = hosts[0..(BATCH_SIZE-1)], (hosts[BATCH_SIZE..-1] || [])
     batch.each do |host|
       df = EM::DnsResolver.resolve(host)
       df.callback { |a|
         p host => a
+        successes += 1
         pending -= 1
         EM.stop if pending < 1 && hosts.empty?
       }
       df.errback { |*a|
         puts "Cannot resolve #{host}: #{a.inspect}"
+        failures += 1
         pending -= 1
         EM.stop if pending < 1 && hosts.empty?
       }
       pending += 1
-      puts "#{pending} pending"
     end
-    puts "Started all: #{pending} pending"
+    puts "#{pending} pending"
   end
 }
+t2 = Time.now
+puts "#{successes} successful, #{failures} failures in #{t2 - t1} s"
