@@ -101,8 +101,6 @@ module EventMachine
         @last_send = Time.at(0)
         @retry_interval = 3
         @max_tries = 5
-        make_id
-        make_packet
         EM.next_tick { tick }
       end
       def tick
@@ -132,24 +130,26 @@ module EventMachine
       end
       private
       def send
-        @socket.send_packet(@pkt.encode)
+        @socket.send_packet(packet.encode)
         @tries += 1
         @last_send = Time.now
       end
-      def make_id
+      def id
         begin
           @id = rand(65535)
           @socket.register_request(@id, self)
         rescue RequestIdAlreadyUsed
           retry
-        end
+        end unless defined?(@id)
+
+        @id
       end
-      def make_packet
+      def packet
         msg = Resolv::DNS::Message.new
-        msg.id = @id
+        msg.id = id
         msg.rd = 1
         msg.add_question @hostname, Resolv::DNS::Resource::IN::A
-        @pkt = msg
+        msg
       end
     end
   end
